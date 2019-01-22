@@ -1,0 +1,15 @@
+# Mac
+.DS_Store
+
+# Eclipse
+/target/
+.classpath
+.project
+.settings/
+
+# additional for IntelliJ
+.idea/
+*.iml
+
+# other
+*.log
