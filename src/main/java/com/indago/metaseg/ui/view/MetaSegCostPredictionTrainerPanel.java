@@ -26,9 +26,7 @@ public class MetaSegCostPredictionTrainerPanel extends JPanel implements ActionL
 	MetaSegCostPredictionTrainerModel model;
 
 	private JSplitPane splitPane;
-
 	private JButton btnFetch;
-
 	private JButton btnRandCosts;
 
 	public MetaSegCostPredictionTrainerPanel( final MetaSegCostPredictionTrainerModel costTrainerModel ) {

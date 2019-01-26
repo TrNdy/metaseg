@@ -15,4 +15,7 @@ public class MetaSegSolverModel {
 		this.parentModel = metaSegModel;
 	}
 
+	public void run() {
+
+	}
 }
