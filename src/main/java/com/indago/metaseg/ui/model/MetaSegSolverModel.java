@@ -3,6 +3,7 @@
  */
 package com.indago.metaseg.ui.model;
 
+import com.indago.metaseg.MetaSegLog;
 
 /**
  * @author jug
@@ -16,6 +17,6 @@ public class MetaSegSolverModel {
 	}
 
 	public void run() {
-
+		MetaSegLog.log.error( "Solver.run not yet implemented!" );
 	}
 }
