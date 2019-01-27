@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import com.indago.costs.CostFactory;
+import com.indago.costs.CostParams;
 import com.indago.data.segmentation.ConflictGraph;
 import com.indago.data.segmentation.LabelingSegment;
 import com.indago.metaseg.MetaSegLog;
@@ -16,7 +18,7 @@ import com.indago.metaseg.data.LabelingFrame;
 /**
  * @author jug
  */
-public class MetaSegCostPredictionTrainerModel {
+public class MetaSegCostPredictionTrainerModel implements CostFactory< LabelingSegment > {
 
 	private final MetaSegModel parentModel;
 	private LabelingFrame labelingFrame;
@@ -58,7 +60,27 @@ public class MetaSegCostPredictionTrainerModel {
 		return costs.containsKey( ls );
 	}
 
-	public Double getCost( final LabelingSegment ls ) {
+	/**
+	 * @see com.indago.costs.CostFactory#getCost(java.lang.Object)
+	 */
+	@Override
+	public double getCost( final LabelingSegment ls ) {
 		return costs.get( ls );
+	}
+
+	/**
+	 * @see com.indago.costs.CostFactory#getParameters()
+	 */
+	@Override
+	public CostParams getParameters() {
+		return null;
+	}
+
+	/**
+	 * @see com.indago.costs.CostFactory#setParameters(com.indago.costs.CostParams)
+	 */
+	@Override
+	public void setParameters( final CostParams p ) {
+		MetaSegLog.solverLog.error( "No parameters are accepted for this CostFactory!" );
 	}
 }

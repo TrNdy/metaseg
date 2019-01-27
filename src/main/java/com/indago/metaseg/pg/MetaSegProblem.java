@@ -5,10 +5,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import com.indago.costs.CostFactory;
 import com.indago.data.segmentation.ConflictGraph;
 import com.indago.data.segmentation.LabelingSegment;
 import com.indago.metaseg.pg.levedit.EditState;
+import com.indago.metaseg.ui.model.MetaSegCostPredictionTrainerModel;
 import com.indago.pg.SegmentationProblem;
 import com.indago.pg.segments.ConflictSet;
 import com.indago.pg.segments.SegmentNode;
@@ -16,7 +16,7 @@ import com.indago.util.Bimap;
 
 public class MetaSegProblem implements SegmentationProblem {
 
-	private final CostFactory< LabelingSegment > segmentCosts;
+	private final MetaSegCostPredictionTrainerModel costsModel;
 
 	private final Collection< SegmentNode > segments = new ArrayList<>();
 	private final ConflictGraph< LabelingSegment > conflictGraph;
@@ -28,11 +28,11 @@ public class MetaSegProblem implements SegmentationProblem {
 
 	public MetaSegProblem(
 			final List< LabelingSegment > labelingSegments,
-			final CostFactory< LabelingSegment > segmentCosts,
+			final MetaSegCostPredictionTrainerModel costModel,
 			final ConflictGraph< LabelingSegment > conflictGraph ) {
 		segmentBimap = new Bimap<>();
 
-		this.segmentCosts = segmentCosts;
+		this.costsModel = costModel;
 		this.conflictGraph = conflictGraph;
 
 		createSegmentVars( labelingSegments );
@@ -44,7 +44,7 @@ public class MetaSegProblem implements SegmentationProblem {
 	private void createSegmentVars( final List< LabelingSegment > labelingSegments ) {
 		for ( final LabelingSegment labelingSegment : labelingSegments ) {
 			final SegmentNode segVar =
-					new SegmentNode( labelingSegment, segmentCosts.getCost( labelingSegment ) );
+					new SegmentNode( labelingSegment, costsModel.getCost( labelingSegment ) );
 			segments.add( segVar );
 			segmentBimap.add( segVar, labelingSegment );
 		}
