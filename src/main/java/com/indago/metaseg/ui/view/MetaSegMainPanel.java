@@ -21,7 +21,6 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.scijava.log.Logger;
 import org.scijava.ui.behaviour.io.InputTriggerConfig;
 import org.scijava.ui.behaviour.io.yaml.YamlConfigIO;
 import org.scijava.ui.behaviour.util.InputActionBindings;
@@ -58,7 +57,7 @@ public class MetaSegMainPanel extends JPanel implements ActionListener, ChangeLi
 
 	private final LoggingPanel logPanel;
 
-	public MetaSegMainPanel( final Frame frame, final MetaSegModel model, final Logger logger ) {
+	public MetaSegMainPanel( final Frame frame, final MetaSegModel model ) {
 		super( new BorderLayout( 5, 5 ) );
 		logPanel = new LoggingPanel( MetaSegContext.ops.context() );
 		model.setRefToMainPanel( this );
@@ -67,18 +66,16 @@ public class MetaSegMainPanel extends JPanel implements ActionListener, ChangeLi
 		this.frame = frame;
 		this.model = model;
 
-		buildGui( logger );
+		buildGui();
 	}
 
-	private void buildGui( final Logger logger ) {
+	private void buildGui() {
 		// --- INPUT TRIGGERS ---------------------------------------------------------------------
 		model.setDefaultInputTriggerConfig( loadInputTriggerConfig() );
 
 		// --- LOGGING PANEL ----------------------------------------------------------------------
-		IndagoLog.log = setupLogger( logger, "indago" );
-		MetaSegLog.log = setupLogger( logger );
-		MetaSegLog.segmenterLog = setupLogger( logger, "seg" );
-		MetaSegLog.solverlog = setupLogger( logger, "gurobi" );
+		IndagoLog.log.addLogListener( logPanel );
+		MetaSegLog.log.addLogListener( logPanel );
 
 		// === TAB DATA ===========================================================================
 		tabs = new JTabbedPane();
@@ -114,16 +111,6 @@ public class MetaSegMainPanel extends JPanel implements ActionListener, ChangeLi
 		splitPane.setOneTouchExpandable( true );
 
 		this.add( splitPane, BorderLayout.CENTER );
-	}
-
-	private Logger setupLogger( final Logger logger ) {
-		logger.addLogListener( logPanel );
-		return logger;
-	}
-	private Logger setupLogger( final Logger logger, final String name ) {
-		final Logger log = logger.subLogger( name );
-		log.addLogListener( logPanel );
-		return log;
 	}
 
 	/**

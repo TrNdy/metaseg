@@ -59,7 +59,7 @@ public class MetaSegSegmentationCollectionModel implements AutoCloseable {
 			try {
 				plugin.close();
 			} catch ( final Exception e ) {
-				MetaSegLog.log.warn( "Exception while closing: " + plugin.getUiName(), e );
+				MetaSegLog.solverLog.warn( "Exception while closing: " + plugin.getUiName(), e );
 			}
 	}
 

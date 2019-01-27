@@ -17,6 +17,6 @@ public class MetaSegSolverModel {
 	}
 
 	public void run() {
-		MetaSegLog.log.error( "Solver.run not yet implemented!" );
+		MetaSegLog.solverLog.error( "Solver.run not yet implemented!" );
 	}
 }

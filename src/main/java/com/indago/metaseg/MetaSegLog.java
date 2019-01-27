@@ -12,8 +12,8 @@ import com.indago.IndagoLog;
  */
 public class MetaSegLog {
 
-	public static Logger log = IndagoLog.log.subLogger( "metaseg" );
-	public static Logger solverlog = IndagoLog.log.subLogger( "gurobi" );
-	public static Logger segmenterLog = IndagoLog.log.subLogger( "seg" );
+	public static Logger log = IndagoLog.stdLogger().subLogger( "metaseg" );
+	public static Logger solverLog = log.subLogger( "sol" );
+	public static Logger segmenterLog = log.subLogger( "seg" );
 
 }

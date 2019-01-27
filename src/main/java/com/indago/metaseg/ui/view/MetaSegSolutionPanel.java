@@ -76,8 +76,8 @@ public class MetaSegSolutionPanel extends JPanel implements ActionListener {
 	}
 
 	private void actionRun() {
-		MetaSegLog.log.info( "Starting MetaSeg optimization..." );
+		MetaSegLog.segmenterLog.info( "Starting MetaSeg optimization..." );
 		model.run();
-		MetaSegLog.log.info( "Done!" );
+		MetaSegLog.segmenterLog.info( "Done!" );
 	}
 }

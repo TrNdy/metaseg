@@ -104,7 +104,7 @@ public class MetaSegApplication {
 				XMLService.class, FilePatternService.class, WidgetService.class);
 		ops = context.getService( OpService.class );
 		segPlugins = context.getService( IndagoSegmentationPluginService.class );
-		log = context.getService( LogService.class ).subLogger( "metaseg" );
+		log = context.getService( LogService.class );
 		log.info( "STANDALONE" );
 	}
 
@@ -143,7 +143,7 @@ public class MetaSegApplication {
 
 		if ( imgPlus != null ) {
 			final MetaSegModel model = new MetaSegModel( projectFolder, imgPlus );
-			mainPanel = new MetaSegMainPanel( guiFrame, model, log );
+			mainPanel = new MetaSegMainPanel( guiFrame, model );
 
 			guiFrame.getContentPane().add( mainPanel );
 			setFrameSizeAndCloseOperation( model );
