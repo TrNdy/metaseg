@@ -76,7 +76,7 @@ public class MetaSegMainPanel extends JPanel implements ActionListener, ChangeLi
 
 		// --- LOGGING PANEL ----------------------------------------------------------------------
 		IndagoLog.log = setupLogger( logger, "indago" );
-		MetaSegLog.log = setupLogger( logger, "metaseg" );
+		MetaSegLog.log = setupLogger( logger );
 		MetaSegLog.segmenterLog = setupLogger( logger, "seg" );
 		MetaSegLog.solverlog = setupLogger( logger, "gurobi" );
 
@@ -116,6 +116,10 @@ public class MetaSegMainPanel extends JPanel implements ActionListener, ChangeLi
 		this.add( splitPane, BorderLayout.CENTER );
 	}
 
+	private Logger setupLogger( final Logger logger ) {
+		logger.addLogListener( logPanel );
+		return logger;
+	}
 	private Logger setupLogger( final Logger logger, final String name ) {
 		final Logger log = logger.subLogger( name );
 		log.addLogListener( logPanel );
