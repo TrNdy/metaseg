@@ -32,13 +32,15 @@ import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Pair;
+import net.imglib2.util.ValuePair;
 
 /**
  * @author jug
  */
 public class MetaSegSolverModel implements BdvWithOverlaysOwner {
 
-	private final MetaSegModel parentModel;
+	private final MetaSegModel model;
 	private final MetaSegCostPredictionTrainerModel costModel;
 
 	private BdvHandlePanel bdvHandlePanel;
@@ -47,24 +49,49 @@ public class MetaSegSolverModel implements BdvWithOverlaysOwner {
 	private final List< BdvOverlay > overlays = new ArrayList<>();
 	private final List< BdvSource > bdvOverlaySources = new ArrayList<>();
 
-	private MetaSegProblem msProblem;
-	private MappedFactorGraph msFactorGraph;
+	private final List< MetaSegProblem > msProblems = new ArrayList<>();
+	private final List< MappedFactorGraph > msFactorGraphs = new ArrayList<>();
 	private SolveGurobi gurobiFGsolver;
-	private Assignment< Variable > fgSolution;
-	private Assignment< IndicatorNode > pgSolution;
+	private final List< Assignment< Variable > > fgSolutions = new ArrayList<>();
+	private final List< Assignment< IndicatorNode > > pgSolutions = new ArrayList<>();
 
 	public MetaSegSolverModel( final MetaSegModel metaSegModel ) {
-		this.parentModel = metaSegModel;
+		this.model = metaSegModel;
 		this.costModel = metaSegModel.getCostTrainerModel();
 	}
 
 	public void run() {
-		MetaSegLog.solverLog.info( "Building PG..." );
-		msProblem = new MetaSegProblem( costModel.getLabeling().getSegments(), costModel, costModel.getConflictGraph() );
+		msProblems.clear();
+		msFactorGraphs.clear();
+
+		MetaSegLog.solverLog.info( "Building PGs..." );
+		if ( model.hasFrames() ) {
+			for ( int t=0; t<model.getNumberOfFrames(); t++ ) {
+				MetaSegLog.solverLog.info( String.format( "...t = %d...", t ) );
+				msProblems.add(
+						new MetaSegProblem(
+								costModel.getLabelings().getSegments( t ),
+								costModel,
+								costModel.getConflictGraph( t ) ) );
+			}
+		} else {
+			msProblems.add(
+					new MetaSegProblem(
+							costModel.getLabelings().getSegments( 0 ),
+							costModel,
+							costModel.getConflictGraph( 0 ) ) );
+		}
 		MetaSegLog.solverLog.info( "...done!" );
 
-		MetaSegLog.solverLog.info( "Building FG..." );
-		msFactorGraph = FactorGraphFactory.createFactorGraph( msProblem );
+		MetaSegLog.solverLog.info( "Building FGs..." );
+		if ( model.hasFrames() ) {
+			for ( int t = 0; t < model.getNumberOfFrames(); t++ ) {
+				MetaSegLog.solverLog.info( String.format( "...t = %d...", t ) );
+				msFactorGraphs.add( FactorGraphFactory.createFactorGraph( msProblems.get( t ) ) );
+			}
+		} else {
+			msFactorGraphs.add( FactorGraphFactory.createFactorGraph( msProblems.get( 0 ) ) );
+		}
 		MetaSegLog.solverLog.info( "...done!" );
 
 		MetaSegLog.solverLog.info( "Solve using GUROBI..." );
@@ -73,23 +100,40 @@ public class MetaSegSolverModel implements BdvWithOverlaysOwner {
 	}
 
 	private void solveFactorGraphInternally() {
-		final UnaryCostConstraintGraph fg = msFactorGraph.getFg();
-		final AssignmentMapper< Variable, IndicatorNode > assMapper = msFactorGraph.getAssmntMapper();
-//			final Map< IndicatorNode, Variable > varMapper = mfg.getVarmap();
+		pgSolutions.clear();
+		fgSolutions.clear();
 
-		fgSolution = null;
+		if ( model.hasFrames() ) {
+			for ( int t = 0; t < model.getNumberOfFrames(); t++ ) {
+				MetaSegLog.solverLog.info( String.format( "Solving t = %d with GUROBI...", t ) );
+				//			final Map< IndicatorNode, Variable > varMapper = mfg.getVarmap();
+				final Pair< Assignment< IndicatorNode >, Assignment< Variable > > assmnts = solveFactorGraphInternally( msFactorGraphs.get( t ) );
+				pgSolutions.add( assmnts.getA() );
+				fgSolutions.add( assmnts.getB() );
+			}
+		} else {
+			//			final Map< IndicatorNode, Variable > varMapper = mfg.getVarmap();
+			final Pair< Assignment< IndicatorNode >, Assignment< Variable > > assmnts = solveFactorGraphInternally( msFactorGraphs.get( 0 ) );
+			pgSolutions.add( assmnts.getA() );
+			fgSolutions.add( assmnts.getB() );
+		}
+	}
+
+	private Pair< Assignment< IndicatorNode >, Assignment< Variable > > solveFactorGraphInternally( final MappedFactorGraph mappedFactorGraph ) {
+		final UnaryCostConstraintGraph fg = mappedFactorGraph.getFg();
+		final AssignmentMapper< Variable, IndicatorNode > assMapper = mappedFactorGraph.getAssmntMapper();
 		try {
 			SolveGurobi.GRB_PRESOLVE = 0;
 			gurobiFGsolver = new SolveGurobi();
-			fgSolution = gurobiFGsolver.solve( fg, new DefaultLoggingGurobiCallback( MetaSegLog.solverLog ) );
-			pgSolution = assMapper.map( fgSolution );
+			final Assignment< Variable > fgSolution = gurobiFGsolver.solve( fg, new DefaultLoggingGurobiCallback( MetaSegLog.solverLog ) );
+			final Assignment< IndicatorNode > pgSolution = assMapper.map( fgSolution );
+			return new ValuePair<>( pgSolution, fgSolution );
 		} catch ( final GRBException e ) {
 			e.printStackTrace();
 		} catch ( final IllegalStateException ise ) {
-			fgSolution = null;
-			pgSolution = null;
 			MetaSegLog.solverLog.error( "Model is now infeasible and needs to be retracked!" );
 		}
+		return new ValuePair<>( null, null );
 	}
 
 	public void populateBdv() {
@@ -99,11 +143,12 @@ public class MetaSegSolverModel implements BdvWithOverlaysOwner {
 		imgs.clear();
 		overlays.clear();
 
-		bdvAdd( parentModel.getRawData(), "RAW" );
+		bdvAdd( model.getRawData(), "RAW" );
 
-		if ( this.pgSolution != null ) {
+		final int bdvTime = bdvHandlePanel.getViewerPanel().getState().getCurrentTimepoint();
+		if ( pgSolutions != null && pgSolutions.size() > bdvTime && pgSolutions.get( bdvTime ) != null ) {
 			final RandomAccessibleInterval< IntType > imgSolution = SolutionVisualizer.drawSolutionSegmentImages( this );
-			bdvAdd( imgSolution, "solution", 0, 2, new ARGBType( 0x0000FF ), true );
+			bdvAdd( imgSolution, "solution", 0, 2, new ARGBType( 0x00FF00 ), true );
 			imgs.add( imgSolution );
 		}
 
@@ -161,18 +206,34 @@ public class MetaSegSolverModel implements BdvWithOverlaysOwner {
 	}
 
 	public ImgPlus< DoubleType > getRawData() {
-		return parentModel.getRawData();
+		return model.getRawData();
 	}
 
-	public Assignment< IndicatorNode > getPgSolution() {
-		return this.pgSolution;
+	public List< Assignment< IndicatorNode > > getPgSolutions() {
+		return this.pgSolutions;
 	}
 
-	public Assignment< Variable > getFgSolution() {
-		return this.fgSolution;
+	public Assignment< IndicatorNode > getPgSolution( final int t ) {
+		return this.pgSolutions.get( t );
 	}
 
-	public MetaSegProblem getProblem() {
-		return this.msProblem;
+	public List< Assignment< Variable > > getFgSolutions() {
+		return this.fgSolutions;
+	}
+
+	public Assignment< Variable > getFgSolution( final int t ) {
+		return this.fgSolutions.get( t );
+	}
+
+	public List< MetaSegProblem > getProblems() {
+		return this.msProblems;
+	}
+
+	public MetaSegProblem getProblem( final int t ) {
+		return this.msProblems.get( t );
+	}
+
+	public MetaSegModel getModel() {
+		return model;
 	}
 }

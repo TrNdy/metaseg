@@ -84,8 +84,8 @@ public class MetaSegCostPredictionTrainerPanel extends JPanel implements ActionL
 
 	private void actionFetch() {
 		MetaSegLog.log.info( "Fetching segmentation results..." );
-		model.getLabeling();
-		model.getConflictGraph();
+		model.getLabelings();
+		model.getConflictGraphs();
 		model.getConflictCliques();
 		MetaSegLog.log.info( "Segmentation results fetched!" );
 	}

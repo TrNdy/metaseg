@@ -12,6 +12,7 @@ import com.indago.metaseg.ui.view.MetaSegMainPanel;
 import com.indago.util.ImglibUtil;
 
 import net.imagej.ImgPlus;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.NumericType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.view.Views;
@@ -35,6 +36,10 @@ public class MetaSegModel implements AutoCloseable {
 	private final MetaSegMainPanel mainUiPanel;
 	private final MetaSegSolverModel modelSolver;
 
+	private boolean is2D;
+	private final long numChannels;
+	private final long numFrames;
+
 
 	@SuppressWarnings( "unchecked" )
 	public < T extends NumericType< T > > MetaSegModel( final ProjectFolder projectFolder, final ImgPlus< T > imgPlus ) {
@@ -43,6 +48,20 @@ public class MetaSegModel implements AutoCloseable {
 
 		ImglibUtil.logImgPlusFacts( MetaSegLog.log, imgPlus );
 		imgRaw = DoubleTypeImgLoader.wrapEnsureType( imgPlus );
+		switch ( ImglibUtil.getNumberOfSpatialDimensions( imgPlus ) ) {
+		case 2:
+			this.is2D = true;
+			break;
+		case 3:
+			this.is2D = false;
+			break;
+		default:
+			final String msg = "MetaSeg requires an input image containing 2 or 3 spatial dimensions!";
+			MetaSegLog.log.error( msg );
+			throw new IllegalArgumentException( msg );
+		}
+		this.numChannels = ImglibUtil.getNumChannels( imgPlus );
+		this.numFrames = ImglibUtil.getNumFrames( imgPlus );
 
 		minValInRaw = new DoubleType();
 		maxValInRaw = new DoubleType();
@@ -100,5 +119,52 @@ public class MetaSegModel implements AutoCloseable {
 
 	public MetaSegSolverModel getSolutionModel() {
 		return this.modelSolver;
+	}
+
+	public boolean hasChannels() {
+		return (this.numChannels == -1)?false:true;
+	}
+
+	public boolean hasFrames() {
+		return ( this.numFrames == -1 ) ? false : true;
+	}
+
+	/**
+	 * Returns a hyperslice of the RAW image at a given zero-indexed time.
+	 *
+	 * @param t
+	 *            time slice to be returned (note: this index always starts at
+	 *            0, even if min of time dimension would be != 0)
+	 * @return the frame at time t
+	 */
+	public RandomAccessibleInterval< DoubleType > getFrame( final long t ) {
+		final int timeIdx = ImglibUtil.getTimeDimensionIndex( this.imgRaw );
+		return Views.hyperSlice( this.imgRaw, timeIdx, this.imgRaw.min( timeIdx ) + t );
+	}
+
+	public int getNumberOfSpatialDimensions() {
+		return ImglibUtil.getNumberOfSpatialDimensions( this.imgRaw );
+	}
+
+	public long getNumberOfFrames() {
+		final int timeIdx = ImglibUtil.getTimeDimensionIndex( this.imgRaw );
+		return this.imgRaw.dimension( timeIdx );
+	}
+
+	public int getTimeDimensionIndex() {
+		return ImglibUtil.getTimeDimensionIndex( this.imgRaw );
+	}
+
+	public long getNumberOfChannels() {
+		final int timeIdx = ImglibUtil.getTimeDimensionIndex( this.imgRaw );
+		return this.imgRaw.dimension( timeIdx );
+	}
+
+	public int getChannelDimensionIndex() {
+		return ImglibUtil.getTimeDimensionIndex( this.imgRaw );
+	}
+
+	public long getTimeIndex( final int t ) {
+		return t + imgRaw.min( ImglibUtil.getTimeDimensionIndex( this.imgRaw ) );
 	}
 }

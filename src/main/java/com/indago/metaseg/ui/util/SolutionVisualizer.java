@@ -14,6 +14,8 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.roi.IterableRegion;
 import net.imglib2.roi.Regions;
 import net.imglib2.type.numeric.integer.IntType;
+import net.imglib2.view.IntervalView;
+import net.imglib2.view.Views;
 
 /**
  * @author jug
@@ -25,16 +27,31 @@ public class SolutionVisualizer {
 		final RandomAccessibleInterval< IntType > ret =
 				DataMover.createEmptyArrayImgLike( msSolverModel.getRawData(), new IntType() );
 
-		final Assignment< IndicatorNode > solution = msSolverModel.getPgSolution();
-		if ( solution != null ) {
-			final int curColorId = 1;
-			for ( final SegmentNode segVar : msSolverModel.getProblem().getSegments() ) {
-				if ( solution.getAssignment( segVar ) == 1 ) {
-					drawSegmentWithId( ret, solution, segVar, curColorId );
+		if ( msSolverModel.getModel().hasFrames() ) {
+			for ( int t = 0; t < msSolverModel.getModel().getNumberOfFrames(); t++ ) {
+				final Assignment< IndicatorNode > solution = msSolverModel.getPgSolution( t );
+				if ( solution != null ) {
+					final IntervalView< IntType > retSlice = Views.hyperSlice( ret, msSolverModel.getModel().getTimeDimensionIndex(), t );
+
+					final int curColorId = 1;
+					for ( final SegmentNode segVar : msSolverModel.getProblems().get( t ).getSegments() ) {
+						if ( solution.getAssignment( segVar ) == 1 ) {
+							drawSegmentWithId( retSlice, solution, segVar, curColorId );
+						}
+					}
+				}
+			}
+		} else {
+			final Assignment< IndicatorNode > solution = msSolverModel.getPgSolution( 0 );
+			if ( solution != null ) {
+				final int curColorId = 1;
+				for ( final SegmentNode segVar : msSolverModel.getProblems().get( 0 ).getSegments() ) {
+					if ( solution.getAssignment( segVar ) == 1 ) {
+						drawSegmentWithId( ret, solution, segVar, curColorId );
+					}
 				}
 			}
 		}
-
 		return ret;
 	}
 

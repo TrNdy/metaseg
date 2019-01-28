@@ -14,8 +14,10 @@ import com.indago.pg.IndicatorNode;
 import com.indago.pg.segments.SegmentNode;
 
 import bdv.util.BdvOverlay;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealLocalizable;
 import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.type.numeric.real.DoubleType;
 
 /**
  * @author jug
@@ -33,7 +35,10 @@ public class MetaSegSolutionOverlay extends BdvOverlay {
 	 */
 	@Override
 	protected void draw( final Graphics2D g ) {
-		final Assignment< IndicatorNode > pgSolution = model.getPgSolution();
+		if ( model.getPgSolutions() == null || model.getPgSolutions().size() == 0 ) return;
+
+		final int bdvTime = model.bdvGetHandlePanel().getViewerPanel().getState().getCurrentTimepoint();
+		final Assignment< IndicatorNode > pgSolution = model.getPgSolutions().get( bdvTime );
 
 		if ( pgSolution != null ) {
 			drawCOMs( g );
@@ -48,8 +53,9 @@ public class MetaSegSolutionOverlay extends BdvOverlay {
 		final Graphics2D g2 = g;
 		int len = 3;
 
-		final MetaSegProblem problem = model.getProblem();
-		final Assignment< IndicatorNode > pgSolution = model.getPgSolution();
+		final int bdvTime = model.bdvGetHandlePanel().getViewerPanel().getState().getCurrentTimepoint();
+		final MetaSegProblem problem = model.getProblems().get( bdvTime );
+		final Assignment< IndicatorNode > pgSolution = model.getPgSolutions().get( bdvTime );
 
 		// exit if pointless
 		if ( pgSolution == null ) return;
@@ -58,15 +64,31 @@ public class MetaSegSolutionOverlay extends BdvOverlay {
 			final AffineTransform2D trans = new AffineTransform2D();
 			getCurrentTransform2D( trans );
 
-			final int t = info.getTimePointIndex();
+			RandomAccessibleInterval< DoubleType > frame = model.getRawData();
+			long t = 0;
+			if ( model.getModel().hasFrames() ) {
+				t = info.getTimePointIndex();
+				frame = model.getModel().getFrame( t );
+			}
 
 			for ( final SegmentNode segvar : problem.getSegments() ) {
 				if ( pgSolution.getAssignment( segvar ) == 1 || problem.getEditState().isAvoided( segvar ) ) {
 					final RealLocalizable com = segvar.getSegment().getCenterOfMass();
-					final double[] lpos = new double[ 3 ];
-					final double[] gpos = new double[ 3 ];
+					final int nSpatialDims = model.getModel().getNumberOfSpatialDimensions();
+					final double[] lpos = new double[ nSpatialDims ];
+					final double[] gpos = new double[ nSpatialDims ];
 					com.localize( lpos );
 					trans.apply( lpos, gpos );
+
+					double zDistToCOM = 0;
+					if ( nSpatialDims == 3 ) {
+						zDistToCOM = Math.abs( lpos[ 2 ] - t );
+					}
+
+					// Only show nearby stuff...
+					if ( zDistToCOM > 1. ) {
+						continue;
+					}
 
 					if ( problem.getEditState().isForced( segvar ) ) {
 						g.setColor( theForcedColor );
@@ -89,6 +111,7 @@ public class MetaSegSolutionOverlay extends BdvOverlay {
 			}
 		} catch ( final ArrayIndexOutOfBoundsException aioobe ) {
 			// do not bother, this happens only during threaded re-computations while the UI would love to point something that is currently invalid
+//			System.out.println( "" );
 		}
 	}
 
