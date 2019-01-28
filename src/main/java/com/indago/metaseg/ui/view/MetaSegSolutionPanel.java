@@ -4,6 +4,7 @@
 package com.indago.metaseg.ui.view;
 
 import java.awt.BorderLayout;
+import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -14,6 +15,8 @@ import javax.swing.JSplitPane;
 import com.indago.metaseg.MetaSegLog;
 import com.indago.metaseg.ui.model.MetaSegSolverModel;
 
+import bdv.util.Bdv;
+import bdv.util.BdvHandlePanel;
 import net.miginfocom.swing.MigLayout;
 
 /**
@@ -36,21 +39,12 @@ public class MetaSegSolutionPanel extends JPanel implements ActionListener {
 
 	private void buildGui() {
 		final JPanel viewer = new JPanel( new BorderLayout() );
-//		model.bdvSetHandlePanel(
-//				new BdvHandlePanel( ( Frame ) this.getTopLevelAncestor(), Bdv
-//						.options()
-//						.is2D()
-//						.inputTriggerConfig( model.getModel().getDefaultInputTriggerConfig() ) ) );
-//		viewer.add( model.bdvGetHandlePanel().getViewerPanel(), BorderLayout.CENTER );
-//
-//		// show loaded image
-//		final RandomAccessibleInterval< FloatType > flowImg = model.getFlowImage();
-//		model.bdvAdd( model.getModel().getRawData(), "RAW" );
-//		if ( flowImg != null ) {
-////			model.bdvAdd( Views.hyperSlice( flowImg, 2, 0 ), "r", false );
-////			model.bdvAdd( Views.hyperSlice( flowImg, 2, 1 ), "phi", false );
-//			model.bdvAdd( new Tr2dFlowOverlay( model ), "overlay_flow" );
-//		}
+		model.bdvSetHandlePanel(
+				new BdvHandlePanel( ( Frame ) this.getTopLevelAncestor(), Bdv
+						.options()
+						.is2D() ) );
+		viewer.add( model.bdvGetHandlePanel().getViewerPanel(), BorderLayout.CENTER );
+		model.populateBdv();
 
 		final MigLayout layout = new MigLayout( "", "[][grow]", "" );
 		final JPanel controls = new JPanel( layout );
@@ -79,5 +73,7 @@ public class MetaSegSolutionPanel extends JPanel implements ActionListener {
 		MetaSegLog.segmenterLog.info( "Starting MetaSeg optimization..." );
 		model.run();
 		MetaSegLog.segmenterLog.info( "Done!" );
+
+		model.populateBdv();
 	}
 }
