@@ -7,10 +7,12 @@ import org.scijava.ui.behaviour.io.InputTriggerConfig;
 
 import com.indago.io.DoubleTypeImgLoader;
 import com.indago.io.ProjectFolder;
+import com.indago.metaseg.MetaSegLog;
 import com.indago.metaseg.ui.view.MetaSegMainPanel;
 import com.indago.util.ImglibUtil;
 
 import net.imagej.ImgPlus;
+import net.imglib2.type.numeric.NumericType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.view.Views;
 
@@ -34,11 +36,14 @@ public class MetaSegModel implements AutoCloseable {
 	private final MetaSegSolverModel modelSolver;
 
 
-	public MetaSegModel( final ProjectFolder projectFolder, final ImgPlus imgPlus ) {
+	@SuppressWarnings( "unchecked" )
+	public < T extends NumericType< T > > MetaSegModel( final ProjectFolder projectFolder, final ImgPlus< T > imgPlus ) {
 		this.projectFolder = projectFolder;
 		this.mainUiPanel = null;
 
+		ImglibUtil.logImgPlusFacts( MetaSegLog.log, imgPlus );
 		imgRaw = DoubleTypeImgLoader.wrapEnsureType( imgPlus );
+
 		minValInRaw = new DoubleType();
 		maxValInRaw = new DoubleType();
 		ImglibUtil.computeMinMax( Views.iterable( imgRaw ), minValInRaw, maxValInRaw );
@@ -47,7 +52,6 @@ public class MetaSegModel implements AutoCloseable {
 		costTrainerModel = new MetaSegCostPredictionTrainerModel( this );
 		modelSolver = new MetaSegSolverModel( this );
 	}
-
 
 	public void setRefToMainPanel( final MetaSegMainPanel metaSegMainPanel ) {
 		this.mainPanel = metaSegMainPanel;

@@ -139,6 +139,7 @@ public class MetaSegApplication {
 		if(projectFolder == null || inputStack == null)
 			openStackOrProjectUserInteraction();
 
+		@SuppressWarnings( "rawtypes" )
 		final ImgPlus imgPlus = openImageStack();
 
 		if ( imgPlus != null ) {
@@ -320,13 +321,14 @@ public class MetaSegApplication {
 		openProjectFolder(projectFolderBasePath);
 	}
 
+	@SuppressWarnings( "rawtypes" )
 	private ImgPlus openImageStack() {
 		ImagePlus imagePlus = null;
 		if ( inputStack != null ) {
-//			IJ.open( inputStack.getAbsolutePath() );
+
 			imagePlus = IJ.openImage( inputStack.getAbsolutePath() );
 			if ( imagePlus == null ) {
-				IJ.error( "There must be an active, open window!" );
+				IJ.error( String.format( "Can't open '%s'. Quitting!", inputStack.getAbsolutePath() ) );
 				quit( 4 );
 			}
 		}
